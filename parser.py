@@ -4,7 +4,7 @@ import tempfile
 
 from collections import OrderedDict
 from datetime import datetime as dt, timedelta as td
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import requests
 
@@ -98,7 +98,10 @@ class WeatherForecastParser:
         return self._get_one_bs4_element_tag(
             result, 'span', 'unit_temperature_c').string
 
-    def _dictionary_of_dates(self) -> OrderedDict[dt, NavigableString]:
+    
+    def _dictionary_of_dates(self) -> 'OrderedDict[dt, dict]':
+        """Возвращает упорядоченный словарь со строковыми ключами в виде дат
+        `01.12` и значениями ввиде пустого словаря."""
         current_date = dt.now()
         step = td(days=1)
         dictionary: OrderedDict = OrderedDict()
@@ -108,17 +111,18 @@ class WeatherForecastParser:
             current_date += step
             count += 1
         return dictionary
-
+    
+    CustomDict = OrderedDict[dt, Dict[str, NavigableString]]
     def get_filled_dictionary(self) -> OrderedDict[dt, NavigableString]:
         list_data = list(self._get_cleaned_data)
         data_dictionary = self._dictionary_of_dates()
         for data, elem in zip(list_data, data_dictionary.keys()):
-            data_dictionary[elem]['temp_max'] = (self._parse_temp_max(data)
-                                                 .strip())
-            data_dictionary[elem]['temp_min'] = (self._parse_temp_min(data)
-                                                 .strip())
-            data_dictionary[elem]['date'] = (self._parse_date(data)
-                                             .strip().split()[0])
+            data_dictionary[elem]['temp_max'] = (
+                self._parse_temp_max(data).strip())
+            data_dictionary[elem]['temp_min'] = (
+                self._parse_temp_min(data).strip())
+            data_dictionary[elem]['date'] = (
+                self._parse_date(data).strip().split()[0])
             data_dictionary[elem]['data-text'] = data['data-text']
         return data_dictionary
 
@@ -128,9 +132,8 @@ class JsonStorage:
 
     def __init__(self, path: Optional[str] = None) -> None:
         if path is None:
-            self.path: str = os.path.join(tempfile.gettempdir(),
-                                          'storage.json')
-        self
+            self.path: str = os.path.join(
+                tempfile.gettempdir(), 'storage.json')
 
     def write(self, data_dict: dict):
         """Метод производит запись в файл.
@@ -140,5 +143,6 @@ class JsonStorage:
             json.dump(data_dict, write_file)
 
     def read(self):
+        """Производит запись в файл."""
         with open(self.path) as file:
             return json.load(file)
