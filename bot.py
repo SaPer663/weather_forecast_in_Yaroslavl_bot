@@ -1,13 +1,14 @@
-from parser import get_filled_dictionary
-
 import telebot
 
-from config import token_key
+from decouple import config
 
-BOT_TOKEN = token_key
-bot = telebot.TeleBot(BOT_TOKEN)
-DATABASE = get_filled_dictionary()
-last_date = next(reversed(DATABASE))
+from parser import WeatherForecastParser
+
+TOKEN_KEY = config('TOKEN_KEY')
+SLUG = config('SLUG')
+bot = telebot.TeleBot(TOKEN_KEY)
+weather_forecast = WeatherForecastParser(SLUG).get_filled_dictionary()
+last_date = next(reversed(weather_forecast))
 
 
 @bot.message_handler(commands=['start'])
@@ -22,8 +23,8 @@ def command_start(message):
 
 @bot.message_handler(content_types=["text"])
 def repeat_all_messages(message):
-    if message.text in DATABASE.keys():
-        result = DATABASE[message.text]
+    if message.text in weather_forecast.keys():
+        result = weather_forecast[message.text]
         response = (f"{result['data-text']},"
                     " температура днём {result['temp_max']},"
                     " ночь до {result['temp_min']}")

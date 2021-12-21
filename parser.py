@@ -4,15 +4,12 @@ import tempfile
 
 from collections import OrderedDict
 from datetime import datetime as dt, timedelta as td
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, OrderedDict, Union
 
 import requests
 
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString, ResultSet, Tag
-
-SLUG = 'weather-yaroslavl-4313'
-N_TAGIL = 'weather-nizhny-tagil-4478'
 
 
 class WeatherForecastParser:
@@ -51,15 +48,18 @@ class WeatherForecastParser:
         Принимает объект типа BeautifulSoup с содержанием html разметки,
         name_tag - тег, типа str, класс тега типа str.
         """
-        return raw_data.findAll(name_tag, class_=class_tag)
+        return raw_data.findAll(name_tag, attrs={'class':class_tag})
 
     def _get_one_bs4_element_tag(
-            self, raw_data: BeautifulSoup, name_tag: str, class_tag: str
-    ) -> Tag:
+            self,
+            raw_data: Union[Tag, NavigableString],
+            name_tag: str,
+            class_tag: str
+    ) -> Union[Tag, NavigableString, None]:
         """Возвращает объект типа bs4.element.Tag - объект html разметки с
         заданным тегом и тегом класса.
          """
-        return raw_data.find(name_tag, class_=class_tag)
+        return raw_data.find(name_tag, attrs={'class':class_tag})  #type: ignore
 
     def _get_html_by_class_div(self, class_list: List[str]) -> ResultSet:
         """Возвращает ResultSet для div с данными класамми.
@@ -68,38 +68,53 @@ class WeatherForecastParser:
         classses = ' '.join(class_list)
         return self._get_bs4_elements_tag(self._soup, self.TAG_DIV, classses)
 
-    def _parse_date(self, bs4_element_tag: Tag) -> NavigableString:
+    def _parse_date(
+        self,
+        bs4_element_tag: BeautifulSoup
+        ) -> Optional[NavigableString]:
         """Возвращает объект NavigableString - строка содержимого тега с датой.
         Принимает объект типа bs4.element.Tag.
         """
         result = self._get_one_bs4_element_tag(bs4_element_tag, 'div', 'date')
-        if len(result.contents) > 1:
-            return result.contents[0].contents[0].string
+        if result is None:
+            return None
+        if len(result.contents) > 1:  # type: ignore
+            return result.contents[0].contents[0].string  # type: ignore
         else:
-            return result.contents[0].string
+            return result.contents[0].string  # type: ignore
 
-    def _parse_temp_max(self, bs4_element_tag: Tag) -> NavigableString:
+    def _parse_temp_max(
+        self,
+        bs4_element_tag: BeautifulSoup
+        ) -> Optional[NavigableString]:
         """Возвращает объект NavigableString - строка содержимого тега с
         максимальной температурой воздуха за один день.
         Принимает объект типа bs4.element.Tag.
         """
         result = self._get_one_bs4_element_tag(
             bs4_element_tag, 'div', 'temp_max')
-        return self._get_one_bs4_element_tag(
+        if result is None:
+            return None
+        return self._get_one_bs4_element_tag(  # type: ignore
             result, 'span', 'unit_temperature_c').string
 
-    def _parse_temp_min(self, bs4_element_tag: Tag) -> NavigableString:
+    def _parse_temp_min(
+        self,
+        bs4_element_tag: Tag
+        ) -> Optional[str]:
         """Возвращает объект NavigableString - строка содержимого тега с
         минимальной температурой воздуха за один день.
         Принимает объект типа bs4.element.Tag.
         """
         result = self._get_one_bs4_element_tag(
             bs4_element_tag, 'div', 'temp_min')
-        return self._get_one_bs4_element_tag(
-            result, 'span', 'unit_temperature_c').string
+        if result is None:
+            return None
+        return self._get_one_bs4_element_tag(  
+            result, 'span', 'unit_temperature_c').string  #type:ignore
 
     
-    def _dictionary_of_dates(self) -> 'OrderedDict[dt, dict]':
+    def _dictionary_of_dates(self) -> OrderedDict[dt, dict]:
         """Возвращает упорядоченный словарь со строковыми ключами в виде дат
         `01.12` и значениями ввиде пустого словаря."""
         current_date = dt.now()
@@ -113,16 +128,19 @@ class WeatherForecastParser:
         return dictionary
     
     CustomDict = OrderedDict[dt, Dict[str, NavigableString]]
-    def get_filled_dictionary(self) -> OrderedDict[dt, NavigableString]:
+    def get_filled_dictionary(self) -> CustomDict:
         list_data = list(self._get_cleaned_data)
         data_dictionary = self._dictionary_of_dates()
         for data, elem in zip(list_data, data_dictionary.keys()):
             data_dictionary[elem]['temp_max'] = (
-                self._parse_temp_max(data).strip())
+                '' if self._parse_temp_max(data) is None
+                else self._parse_temp_max(data).strip())  #type: ignore
             data_dictionary[elem]['temp_min'] = (
-                self._parse_temp_min(data).strip())
+                '' if self._parse_temp_min(data) is None
+                else self._parse_temp_min(data).strip())  #type: ignore
             data_dictionary[elem]['date'] = (
-                self._parse_date(data).strip().split()[0])
+                '' if self._parse_date(data) is None
+                else self._parse_date(data).strip().split()[0]) #type: ignore
             data_dictionary[elem]['data-text'] = data['data-text']
         return data_dictionary
 

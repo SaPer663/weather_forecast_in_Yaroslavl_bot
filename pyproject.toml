@@ -30,6 +30,8 @@ urllib3 = "^1.26.7"
 "zc.lockfile" = "^2.0"
 zipp = "^3.6.0"
 types-requests = "^2.26.0"
+types-beautifulsoup4 = "^4.10.5"
+python-decouple = "^3.5"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^4.0.1"
