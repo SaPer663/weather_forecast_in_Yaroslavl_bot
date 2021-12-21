@@ -23,3 +23,4 @@ tempora==4.1.2
 urllib3==1.26.7
 zc.lockfile==2.0
 zipp==3.6.0
+python-decouple==3.5
