@@ -10,7 +10,7 @@ jaraco.classes==3.2.1
 jaraco.collections==3.4.0
 jaraco.functools==3.4.0
 jaraco.text==3.6.0
-lxml==4.6.4
+lxml==4.6.5
 more-itertools==8.11.0
 portend==3.0.0
 pytelegrambotapi==4.2.0
